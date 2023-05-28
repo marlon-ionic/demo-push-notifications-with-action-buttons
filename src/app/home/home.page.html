@@ -1,7 +1,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
     <ion-title>
-      Blank
+      Demo Push
     </ion-title>
   </ion-toolbar>
 </ion-header>
@@ -9,12 +9,43 @@
 <ion-content [fullscreen]="true">
   <ion-header collapse="condense">
     <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
+      <ion-title size="large">Demo Push</ion-title>
     </ion-toolbar>
   </ion-header>
 
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
+  <div *ngIf="!isNativePlatform" class="not-supported">
+    <h2>Push Notifications Plugin is not supported in browser</h2>
+    <p>Please use a native platform (Android or iOS).</p>
   </div>
+
+  <div class="feedback"></div>
+
+  <ion-card *ngIf="pushToken" color="primary" (click)="copyToClipboard(pushToken)">
+    <ion-card-header>
+      <ion-card-title>Push Notification Token</ion-card-title>
+      <ion-card-subtitle>Tap to Copy Token</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      {{pushToken}}
+    </ion-card-content>
+  </ion-card>
+
+  <ion-list *ngIf="notifications && notifications.length > 0" lines="full">
+    <ion-list-header>
+      <ion-label>Notifications</ion-label>
+    </ion-list-header>
+    <ion-item>
+      <ion-label>{{notifications.length}} Total Notifications</ion-label>
+      <ion-button slot="end" color="danger" (click)="confirmClear()">
+        Clear
+      </ion-button>
+    </ion-item>
+    <ion-item *ngFor="let item of notifications">
+      <ion-label>
+        <h3 *ngIf="item.title">{{item.title}}</h3>
+        <p *ngIf="item.body">{{item.body}}</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+
 </ion-content>
