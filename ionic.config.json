@@ -1,0 +1,7 @@
+{
+  "name": "demo-push-notifications-with-action-buttons",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
