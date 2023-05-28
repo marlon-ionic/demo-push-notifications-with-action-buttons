@@ -1,8 +1,13 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'io.ionic.starter',
-  appName: 'demo-push-notifications-with-action-buttons',
+  appId: 'io.ionic.demo.push',
+  appName: '(Demo) Push',
+  plugins: {
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"],
+    },
+  },
   webDir: 'www',
   server: {
     androidScheme: 'https'

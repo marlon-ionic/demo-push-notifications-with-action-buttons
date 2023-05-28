@@ -1,6 +1,10 @@
 # Specifies intentionally untracked files to ignore when using Git
 # http://git-scm.com/docs/gitignore
 
+# Ignoring Push Notification configs for this repo only! Since they need to be supplied by the end user
+android/**/google-services.json
+ios/**/GoogleService-Info.plist
+
 *~
 *.sw[mnpcod]
 .tmp

@@ -1,0 +1,3 @@
+# Ignore any private key files as they should not be committed to source code
+# https://firebase.google.com/docs/cloud-messaging/auth-server#provide-credentials-manually
+*adminsdk*.json
