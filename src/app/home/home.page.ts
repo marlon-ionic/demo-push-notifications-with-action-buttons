@@ -2,8 +2,11 @@ import { CommonModule } from '@angular/common';
 import { Component, NgZone, OnInit } from '@angular/core';
 import { Clipboard } from '@capacitor/clipboard';
 import { Capacitor } from '@capacitor/core';
+import { LocalNotificationSchema, LocalNotifications } from '@capacitor/local-notifications';
+import { ActionPerformed as LocalActionPerformed } from '@capacitor/local-notifications';
 import { ActionPerformed, PushNotifications, PushNotificationSchema, Token } from '@capacitor/push-notifications';
-import { AlertController, IonicModule, ToastController, ToastOptions } from '@ionic/angular';
+import { Share } from '@capacitor/share';
+import { AlertButton, AlertController, IonicModule, ToastController, ToastOptions } from '@ionic/angular';
 
 const NOTIFICATIONS_KEY = 'notifications';
 
@@ -17,7 +20,8 @@ const NOTIFICATIONS_KEY = 'notifications';
 export class HomePage implements OnInit {
   isNativePlatform = Capacitor.isNativePlatform();
   pushToken?: string;
-  notifications: any[] = [];
+  canShare?: boolean;
+  notifications: NotifcationListItem[] = [];
   constructor(private alertController: AlertController, private toastController: ToastController, private zone: NgZone) {}
 
   async ngOnInit(): Promise<void> {
@@ -26,10 +30,12 @@ export class HomePage implements OnInit {
       await this.checkPermissions();
       await this.initPushListeners();
     }
+    const { value } = await Share.canShare();
+    this.canShare = value;
   }
 
   async initNotifications() {
-    this.notifications = await this.get(NOTIFICATIONS_KEY) || [];
+    this.notifications = (await this.get(NOTIFICATIONS_KEY) || []);
   }
 
   async clearNotifications () {
@@ -73,10 +79,31 @@ export class HomePage implements OnInit {
   }
 
   async confirmClear() {
-    await this.confirm('Confirm Notification Purge', '', () => this.clearNotifications());
+    await this.actionPrompt('Confirm Notification Purge', undefined, [
+      {
+        text: 'Cancel',
+        role: 'cancel'
+      }, {
+        role: 'destructive',
+        text: 'Purge',
+        handler: () => this.clearNotifications()
+      }
+    ]);
+  }
+
+  async share(value: string) {
+    await Share.share({
+      'title': 'Push Token from Demo App',
+      text: value
+    });
+
   }
 
   async copyToClipboard(value: string) {
+    if(this.canShare) {
+      await this.share(value);
+      return;
+    }
     await Clipboard.write({
       string: value
     });
@@ -94,18 +121,14 @@ export class HomePage implements OnInit {
     await toast.present();
   }
 
-  async confirm(header: string, message: string, action: () => Promise<void>, confirmLabel: string = 'Confirm', destructive: boolean = true, subHeader?: string) {
+  async actionPrompt(header: string, message?: string, actions?: (string|AlertButton)[], subHeader?: string) {
+    const buttons = actions || ['OK'];
     const alert = await this.alertController.create({
       mode: 'ios',
-      header, subHeader, message,
-      buttons: [
-        { role: 'cancel', text: 'Cancel'},
-        {
-          role: destructive ? 'destructive' : undefined,
-          text: confirmLabel,
-          handler: action
-        }
-      ]
+      header,
+      subHeader,
+      message,
+      buttons
     });
     await alert.present();
   }
@@ -117,10 +140,9 @@ export class HomePage implements OnInit {
       if(permissionStatus.receive === 'granted') {
         await PushNotifications.register();
       } else if(permissionStatus.receive == 'denied') {
-        await this.confirm('Notification Permissions Denied',
-                          'Please check your device settings, close the app, and try again!',
-                          async() => { },
-                          'OK' );
+        await this.actionPrompt(
+          'Notification Permissions Denied',
+          'Please check your device settings, close the app, and try again!');
       } else {
         console.warn('permissionStatus', permissionStatus);
 
@@ -131,11 +153,47 @@ export class HomePage implements OnInit {
   }
 
   private async initPushListeners() {
+
     PushNotifications.addListener('registration', (token: Token) => {
-      console.log('token', token.value);
-      this.pushToken = token.value;
+      this.zone.run(() => {
+        console.log('token', token.value);
+        this.pushToken = token.value;
+      });
+
       // alert('Push registration success, token: ' + token.value);
     });
+
+    LocalNotifications.addListener('localNotificationActionPerformed', (notification: LocalActionPerformed) => {
+      this.zone.run(async () => {
+        console.log('localNotificationActionPerformed', notification);
+        const item: NotifcationListItem = {
+          type: 'local',
+          actionId: notification.actionId,
+          notificationDate: new Date(),
+          title: notification.notification.title,
+          body: notification.notification.body
+        };
+        this.notifications = [...this.notifications, item];
+        await this.set(NOTIFICATIONS_KEY, this.notifications);
+      });
+    });
+
+    LocalNotifications.addListener('localNotificationReceived', (notification: LocalNotificationSchema) => {
+      this.zone.run(async () => {
+        const item: NotifcationListItem = {
+          type: 'local',
+          notificationDate: new Date(),
+          title: notification.title,
+          body: notification.body
+        };
+        this.notifications = [...this.notifications, item];
+        await this.set(NOTIFICATIONS_KEY, this.notifications);
+        console.log('localNotificationReceived', notification);
+
+      });
+    });
+
+
 
     PushNotifications.addListener('registrationError', async (error: any) => {
       console.warn('registrationError', error);
@@ -151,7 +209,13 @@ export class HomePage implements OnInit {
       'pushNotificationReceived',
       async (notification: PushNotificationSchema) => {
         this.zone.run(async() => {
-          this.notifications = [...this.notifications, notification];
+          const item: NotifcationListItem = {
+            type: 'remote',
+            notificationDate: new Date(),
+            title: notification.title,
+            body: notification.body
+          };
+          this.notifications = [...this.notifications, item];
           await this.set(NOTIFICATIONS_KEY, this.notifications);
           console.log('pushNotificationReceived', notification, this.notifications, this.notifications.length);
         });
@@ -165,7 +229,25 @@ export class HomePage implements OnInit {
       async (notification: ActionPerformed) => {
         console.log('pushNotificationActionPerformed', notification);
         // alert('Push action performed: ' + JSON.stringify(notification));
+        const item: NotifcationListItem = {
+          type: 'remote',
+          actionId: notification.actionId,
+          notificationDate: new Date(),
+          title: notification.notification.title,
+          body: notification.notification.body
+        };
+        this.notifications = [...this.notifications, item];
+        await this.set(NOTIFICATIONS_KEY, this.notifications);
       },
     );
   }
+}
+
+
+interface NotifcationListItem {
+  notificationDate: Date;
+  type: 'local' | 'remote';
+  actionId?: string;
+  title?: string;
+  body?: string;
 }

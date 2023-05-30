@@ -22,8 +22,9 @@
 
   <ion-card *ngIf="pushToken" color="primary" (click)="copyToClipboard(pushToken)">
     <ion-card-header>
-      <ion-card-title>Push Notification Token</ion-card-title>
-      <ion-card-subtitle>Tap to Copy Token</ion-card-subtitle>
+      <ion-card-title>Your Push Notification Token</ion-card-title>
+      <ion-card-subtitle *ngIf="canShare">Tap to Share Token</ion-card-subtitle>
+      <ion-card-subtitle *ngIf="!canShare">Tap to Copy Token to Clipboard</ion-card-subtitle>
     </ion-card-header>
     <ion-card-content>
       {{pushToken}}
@@ -41,10 +42,12 @@
       </ion-button>
     </ion-item>
     <ion-item *ngFor="let item of notifications">
+      <ion-note *ngIf="item.actionId" slot="start">{{item.actionId}}</ion-note>
       <ion-label>
-        <h3 *ngIf="item.title">{{item.title}}</h3>
+        <h1 *ngIf="item.title">{{item.title}}</h1>
         <p *ngIf="item.body">{{item.body}}</p>
       </ion-label>
+      <ion-badge [color]="item.type === 'local' ? 'secondary' : 'tertiary'" slot="end">{{item.type}}</ion-badge>
     </ion-item>
   </ion-list>
 
