@@ -1,6 +1,7 @@
 import UIKit
 import Capacitor
 import Firebase
+import UserNotifications
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -11,6 +12,71 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Override point for customization after application launch.
         FirebaseApp.configure()
         return true
+    }
+
+
+    // This method must be added for iOS to handle the silent notificiation
+    // Please refer to https://developer.apple.com/documentation/usernotifications/setting_up_a_remote_notification_server/pushing_background_updates_to_your_app
+func application(_ application: UIApplication,
+                     didReceiveRemoteNotification userInfo: [AnyHashable : Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+
+        // Perform background operation
+        // Request user's permission for local notifications. Adjust this as needed
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                // Define the notification category
+                let categoryIdentifier = "MEETING_INVITATION"
+
+                // The category identifier can also be read from the notification
+                if let category = userInfo["category"] as? String {
+                   print(category)
+                    categoryIdentifier = category
+                }
+
+                // You can force the app to the foreground by passing .foreground as a options
+                // For all options, see: https://developer.apple.com/documentation/usernotifications/unnotificationactionoptions
+                let acceptAction = UNNotificationAction(identifier: "ACCEPT_ACTION", title: "Accept", options: [.foreground])
+                let declineAction = UNNotificationAction(identifier: "DECLINE_ACTION", title: "Decline", options: [])
+
+                let category = UNNotificationCategory(identifier: categoryIdentifier, actions: [acceptAction, declineAction], intentIdentifiers: [], options: [])
+
+                UNUserNotificationCenter.current().setNotificationCategories([category])
+
+                // Create the notification content
+                let content = UNMutableNotificationContent()
+                //Set title/body for notification based on push's payload
+                if let title = userInfo["title"] as? String {
+                   print(title)
+                    content.title =  title
+                }
+                if let body = userInfo["body"] as? String {
+                   print(body)
+                    content.body =  body
+                }
+                content.categoryIdentifier = categoryIdentifier
+
+                // Create the trigger for the notification (e.g., trigger it after 5 seconds)
+                let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+
+                // Create the notification request
+                let request = UNNotificationRequest(identifier: "MyNotification", content: content, trigger: trigger)
+
+                // Schedule the notification
+                UNUserNotificationCenter.current().add(request) { error in
+                    if let error = error {
+                        print("Error scheduling notification:", error.localizedDescription)
+                    } else {
+                        print("Notification scheduled successfully!")
+                    }
+                }
+            } else if let error = error {
+                print("Error requesting authorization for notifications:", error.localizedDescription)
+            }
+        }
+
+        // Inform the system after the background operation is completed.
+        completionHandler(.newData)
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
