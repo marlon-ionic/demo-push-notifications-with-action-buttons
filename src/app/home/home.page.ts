@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, NgZone, OnInit } from '@angular/core';
 import { Clipboard } from '@capacitor/clipboard';
 import { Capacitor } from '@capacitor/core';
-import { LocalNotificationSchema, LocalNotifications } from '@capacitor/local-notifications';
+import { LocalNotificationSchema, LocalNotifications, ScheduleOptions } from '@capacitor/local-notifications';
 import { ActionPerformed as LocalActionPerformed } from '@capacitor/local-notifications';
 import { ActionPerformed, PushNotifications, PushNotificationSchema, Token } from '@capacitor/push-notifications';
 import { Share } from '@capacitor/share';
@@ -209,6 +209,26 @@ export class HomePage implements OnInit {
       'pushNotificationReceived',
       async (notification: PushNotificationSchema) => {
         this.zone.run(async() => {
+
+          const plaform = Capacitor.getPlatform();
+          console.log('plaform', plaform);
+          if(plaform === 'android' && notification.data) {
+            const opts: ScheduleOptions = {
+              notifications: [
+                {
+                  id: this.notifications.length,
+                  title: notification.data.title,
+                  body: notification.data.body,
+                  actionTypeId: notification.data.category
+                }
+              ]
+            }
+            const result = await LocalNotifications.schedule(opts);
+            console.log('LocalNotifications: result', result);
+
+
+          }
+
           const item: NotifcationListItem = {
             type: 'remote',
             notificationDate: new Date(),
