@@ -136,17 +136,24 @@ export class HomePage implements OnInit {
 
   private async checkPermissions(): Promise<void> {
     try {
-      const permissionStatus = await PushNotifications.requestPermissions();
-      if(permissionStatus.receive === 'granted') {
+      let permStatus = await PushNotifications.checkPermissions();
+      console.log('permStatus', permStatus);
+      if(permStatus.receive === 'granted') {
         await PushNotifications.register();
-      } else if(permissionStatus.receive == 'denied') {
+        return;
+      } else if(permStatus.receive === 'denied') {
         await this.actionPrompt(
           'Notification Permissions Denied',
           'Please check your device settings, close the app, and try again!');
+          return;
       } else {
-        console.warn('permissionStatus', permissionStatus);
-
+        //Prompt
+        const permissionStatus = await PushNotifications.requestPermissions();
+        if(permissionStatus.receive === 'granted') {
+          await PushNotifications.register();
+        }
       }
+
     } catch(e) {
       console.error('checkPermissions:error', e);
     }

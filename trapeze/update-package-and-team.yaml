@@ -1,0 +1,13 @@
+# Updates the iOS project to use your specific bundle/package identifier and Team ID for iOS.
+vars:
+  TEAM_ID:
+  PACKAGE_ID:
+platforms:
+  ios:
+    targets:
+      App:
+        bundleId: $PACKAGE_ID
+        xcconfig:
+          - file: App/Config.xcconfig
+            set:
+              "DEVELOPMENT_TEAM": $TEAM_ID

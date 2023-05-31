@@ -26,7 +26,7 @@ func application(_ application: UIApplication,
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if granted {
                 // Define the notification category
-                let categoryIdentifier = "MEETING_INVITATION"
+                var categoryIdentifier = "MEETING_INVITATION"
 
                 // The category identifier can also be read from the notification
                 if let category = userInfo["category"] as? String {
